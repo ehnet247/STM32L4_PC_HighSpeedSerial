@@ -40,8 +40,11 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+/* UART handler declaration */
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
+/* Buffer used for transmission */
+uint8_t aTxBuffer[] = " ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA**** ";
 
 /* USER CODE BEGIN PV */
 
@@ -93,6 +96,11 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  /*##-4- Start the transmission process #####################################*/
+    if(HAL_UART_Transmit_DMA(&huart2, (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK)
+    {
+      Error_Handler();
+    }
 
   /* USER CODE END 2 */
 
