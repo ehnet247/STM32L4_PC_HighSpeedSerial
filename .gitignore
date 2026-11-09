@@ -474,3 +474,4 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+STM32/.settings/com.st.stm32cube.ide.mcu.sfrview.prefs

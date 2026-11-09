@@ -45,6 +45,7 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 /* Buffer used for transmission */
 uint8_t aTxBuffer[] = " ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA**** ";
+uint8_t bTransmissionStarted = 0;
 
 /* USER CODE BEGIN PV */
 
@@ -95,19 +96,26 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
   /*##-4- Start the transmission process #####################################*/
-    if(HAL_UART_Transmit_DMA(&huart2, (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK)
-    {
-      Error_Handler();
-    }
 
-  /* USER CODE END 2 */
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if (BSP_PB_GetState(BUTTON_USER) != GPIO_PIN_SET)
+	  {
+		  if (bTransmissionStarted == 0)
+		  {
+			  // Init the transmission process
+			  if(HAL_UART_Transmit_DMA(&huart2, (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK)
+			  {
+				  Error_Handler();
+			  }
+			  bTransmissionStarted = 1;
+		  }
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
