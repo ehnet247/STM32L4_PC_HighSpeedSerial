@@ -19,11 +19,11 @@
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <StackPanel>
             <Label Content="COM Port:"/>
-            <ComboBox Width="200" ItemsSource="{Binding AvailableomPorts}" SelectedItem="{Binding SelectedComPort}"/>
+            <ComboBox Width="200" ItemsSource="{Binding AvailableComPorts}" SelectedItem="{Binding SelectedComPort}"/>
             </StackPanel>
             <StackPanel>
                 <Label Content="Baudrate:"/>
-                <ComboBox Width="200" ItemsSource="{Binding AvailableComPorts}" SelectedItem="{Binding SelectedComPort}"/>
+                <TextBox Width="200" Text="{Binding BaudRate}"/>
             </StackPanel>
         </StackPanel>
         <!-- ROW 1 -->

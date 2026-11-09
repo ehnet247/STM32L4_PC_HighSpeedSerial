@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
 using System.IO.Ports;
+using CommunityToolkit.Mvvm.Input;
 
 namespace SerialReceiver
 {
@@ -23,7 +24,12 @@ namespace SerialReceiver
         }
         [ObservableProperty]
         private double _baudRate = 9600;
-        public ObservableCollection<string> AvailableComPorts = new ObservableCollection<string>();
+        [RelayCommand]
+        private void OpenClose()
+        {
+            // Implementation for opening/closing the serial port
+        }
+        public ObservableCollection<string> AvailableComPorts { get; } = new ObservableCollection<string>();
 
         public void OnWindowLoaded()
         {
