@@ -4,40 +4,55 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:SerialReceiver"
+        xmlns:conv="clr-namespace:SerialReceiver.Converters"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
         Closing="Window_Closing"
         Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <conv:BoolToOpenCloseConverterConverters x:Key="BoolToOpenCloseConverter"/>
+    </Window.Resources>
     <Window.DataContext>
         <local:MainViewModel/>
     </Window.DataContext>
-    <Grid>
+    <Grid Margin="5,5,5,5">
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
+            <RowDefinition Height="55"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- ROW 0 -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <StackPanel>
-                <Label Content="COM Port:">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Left">
+            <DockPanel Height="55">
+                <ComboBox Name="ComPortComboBox"
+                          Width="200"
+                          Height="25"
+                          DockPanel.Dock="Bottom"
+                          ItemsSource="{Binding AvailableComPorts}"
+                          IsDropDownOpen="{Binding ShowComPortList}"
+                          SelectedItem="{Binding SelectedComPort}"
+                          SelectedIndex="{Binding SelectedComPortIndex}">
+                </ComboBox>
+                <Label Content="COM Port:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0">
                     <Label.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Refresh" Command="{Binding RefreshComPortsCommand}" />
                         </ContextMenu>
                     </Label.ContextMenu>
                 </Label>
-                <ComboBox Name="ComPortComboBox"
-                          Width="200"
-                          ItemsSource="{Binding AvailableComPorts}"
-                          IsDropDownOpen="{Binding ShowComPortList}"
-                          SelectedItem="{Binding SelectedComPort}"
-                          SelectedIndex="{Binding SelectedComPortIndex}">
-                </ComboBox>
-            </StackPanel>
-            <StackPanel>
-                <Label Content="Baudrate:"/>
-                <TextBox Width="200" Text="{Binding BaudRate}"/>
-            </StackPanel>
+            </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" >
+                <TextBox Width="200" Text="{Binding BaudRate}" Height="25" DockPanel.Dock="Bottom"/>
+                <Label Content="Baudrate:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0"/>
+            </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <ToggleButton Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
+                          Command="{Binding OpenCloseCommand}"
+                          IsChecked="{Binding IsSerialPortClosed, Mode=OneWay}"
+                          DockPanel.Dock="Bottom"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Bottom"
+                          Width="50" Height="25"/>
+            </DockPanel>
         </StackPanel>
         <!-- ROW 1 -->
         <Grid Grid.Row="1">

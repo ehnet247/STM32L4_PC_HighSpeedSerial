@@ -6,6 +6,7 @@ using System.Text;
 using System.IO.Ports;
 using CommunityToolkit.Mvvm.Input;
 using System.Configuration;
+using System.Diagnostics;
 
 namespace SerialReceiver
 {
@@ -21,21 +22,47 @@ namespace SerialReceiver
         private bool _isSerialPortClosed = true;
         [ObservableProperty]
         private bool _showComPortList = false;
+        private readonly SerialPort _serialPort = new SerialPort();
         partial void OnSelectedComPortChanged(string value)
         {
-            //if (!_serialPort.IsOpen)
-            //{
-            //    _serialPort.PortName = value;
-            //}
-            if (AppSettings?.Default != null)
-                AppSettings.Default.LastComPort = value;
+            if (!_serialPort.IsOpen)
+            {
+                _serialPort.PortName = value;
+            }
         }
         [ObservableProperty]
         private double _baudRate = 9600;
         [RelayCommand]
         private void OpenClose()
         {
-            // Implementation for opening/closing the serial port
+            if (_serialPort.IsOpen)
+            {
+                _serialPort.Close();
+            }
+            else
+            {
+                _serialPort.BaudRate = (int)BaudRate;
+                _serialPort.PortName = SelectedComPort;
+                try
+                {
+                    _serialPort.Open();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to open serial port: {ex.Message}");
+                }
+                // If the serial port is open, copy the current settings to the AppSettings
+                if (_serialPort.IsOpen)
+                {
+                    if (AppSettings?.Default != null)
+                    {
+                        AppSettings.Default.LastComPort = _serialPort.PortName;
+                        AppSettings.Default.LastBaudRate = BaudRate;
+                    }
+                }
+            }
+            // Then update the IsSerialPortClosed property to reflect the current state of the serial port
+            IsSerialPortClosed = !_serialPort.IsOpen;
         }
         public ObservableCollection<string> AvailableComPorts { get; } = new ObservableCollection<string>();
 
@@ -56,6 +83,10 @@ namespace SerialReceiver
 
         public void OnWindowClosing()
         {
+            if (_serialPort.IsOpen)
+            {
+                _serialPort.Close();
+            }
             AppSettings!.Save();
         }
 
