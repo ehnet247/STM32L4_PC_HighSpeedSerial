@@ -7,5 +7,6 @@ namespace SerialReceiver
     public interface IWindowModel
     {
         public void OnWindowLoaded();
+        public void OnWindowClosing();
     }
 }

@@ -28,5 +28,13 @@ namespace SerialReceiver
                 windowModel.OnWindowLoaded();
             }
         }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (DataContext is IWindowModel windowModel)
+            {
+                windowModel.OnWindowClosing();
+            }
+        }
     }
 }

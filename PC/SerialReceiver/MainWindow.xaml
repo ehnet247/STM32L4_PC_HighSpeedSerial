@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:SerialReceiver"
         mc:Ignorable="d"
         Loaded="Window_Loaded"
+        Closing="Window_Closing"
         Title="MainWindow" Height="450" Width="800">
     <Window.DataContext>
         <local:MainViewModel/>
@@ -18,8 +19,20 @@
         <!-- ROW 0 -->
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <StackPanel>
-            <Label Content="COM Port:"/>
-            <ComboBox Width="200" ItemsSource="{Binding AvailableComPorts}" SelectedItem="{Binding SelectedComPort}"/>
+                <Label Content="COM Port:">
+                    <Label.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Refresh" Command="{Binding RefreshComPortsCommand}" />
+                        </ContextMenu>
+                    </Label.ContextMenu>
+                </Label>
+                <ComboBox Name="ComPortComboBox"
+                          Width="200"
+                          ItemsSource="{Binding AvailableComPorts}"
+                          IsDropDownOpen="{Binding ShowComPortList}"
+                          SelectedItem="{Binding SelectedComPort}"
+                          SelectedIndex="{Binding SelectedComPortIndex}">
+                </ComboBox>
             </StackPanel>
             <StackPanel>
                 <Label Content="Baudrate:"/>
