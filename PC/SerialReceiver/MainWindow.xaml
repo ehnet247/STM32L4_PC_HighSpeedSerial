@@ -19,8 +19,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="55"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
         </Grid.RowDefinitions>
-        <!-- ROW 0 -->
+        <!-- ROW 0: Port selection & control -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Left">
             <DockPanel Height="55">
                 <ComboBox Name="ComPortComboBox"
@@ -30,7 +31,8 @@
                           ItemsSource="{Binding AvailableComPorts}"
                           IsDropDownOpen="{Binding ShowComPortList}"
                           SelectedItem="{Binding SelectedComPort}"
-                          SelectedIndex="{Binding SelectedComPortIndex}">
+                          SelectedIndex="{Binding SelectedComPortIndex}"
+                          IsEditable="{Binding IsSerialPortClosed}">
                 </ComboBox>
                 <Label Content="COM Port:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0">
                     <Label.ContextMenu>
@@ -53,10 +55,37 @@
                           VerticalAlignment="Bottom"
                           Width="50" Height="25"/>
             </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <Button Content="Abort"
+                    Command="{Binding AbortCommand}"
+                    DockPanel.Dock="Bottom"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Width="50" Height="25"/>
+            </DockPanel>
         </StackPanel>
-        <!-- ROW 1 -->
+        <!-- ROW 1: Frame display -->
         <Grid Grid.Row="1">
-            <!-- Add your content here -->
+            <DataGrid ItemsSource="{Binding Frames}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      LoadingRow="DataGrid_LoadingRow">
+                <DataGrid.Columns>
+                        <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="150"/>
+                        <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="*"/>
+                        <DataGridCheckBoxColumn Header="IsValid" Binding="{Binding IsValid}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+        <!-- ROW 2: Status bar -->
+        <Grid Grid.Row="2">
+            <StatusBar>
+                <StatusBarItem>
+                    <TextBlock Text="{Binding StatusText}" />
+                </StatusBarItem>
+            </StatusBar>
         </Grid>
     </Grid>
 </Window>

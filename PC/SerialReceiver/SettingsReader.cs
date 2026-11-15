@@ -49,6 +49,6 @@ namespace SerialReceiver
     public class Settings
     {
         public string? LastComPort { get; set; } = null;
-        public double? LastBaudRate { get; set; } = null;
+        public int? LastBaudRate { get; set; } = null;
     }
 }
