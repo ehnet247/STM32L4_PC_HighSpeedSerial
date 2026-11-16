@@ -8,6 +8,8 @@ using CommunityToolkit.Mvvm.Input;
 using System.Configuration;
 using System.Diagnostics;
 using System.IO;
+using System.Windows.Threading;
+using System.Windows;
 
 namespace SerialReceiver;
     public partial class MainViewModel : ObservableRecipient, IWindowModel
@@ -25,6 +27,8 @@ namespace SerialReceiver;
         private bool _isSerialPortClosed = true;
         [ObservableProperty]
         private bool _showComPortList = false;
+        [ObservableProperty]
+        private bool _useStreamReader = false;
         private readonly SerialPort _serialPort = new SerialPort();
     partial void OnSelectedComPortChanged(string value)
     {
@@ -74,13 +78,55 @@ namespace SerialReceiver;
         return Task.FromResult(bytesRead).Result;
     }
 
+    private bool IsFrameValid(char[] buffer)
+    {
+        if (buffer.Length == 1024)
+            return true;
+        return false;
+    }
+
+    private bool IsFrameValid(byte[] buffer)
+    {
+        if (buffer.Length == 1024)
+            return true;
+        return false;
+    }
+
     private void AddFrame(char[] buffer)
     {
-        var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), new string(buffer), true);
+        var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, new string(buffer), IsFrameValid(buffer));
         Frames.Add(frame);
-        if (_serialPort.IsOpen)
-        {
+        if (_serialPort.IsOpen && UseStreamReader)
             _ = ListenAsync(_cancellationTokenSource.Token);
+    }
+
+    private void AddFrame(byte[] buffer)
+    {
+        var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, Encoding.ASCII.GetString(buffer), IsFrameValid(buffer));
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            Frames.Add(frame);
+        });
+        if (_serialPort.IsOpen && UseStreamReader)
+            _ = ListenAsync(_cancellationTokenSource.Token);
+    }
+
+    private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
+    {
+        if (_serialPort.BytesToRead >= 1024)
+        {
+            byte[] buffer = new byte[1024];
+            _serialPort.Read(buffer, 0, 1024);
+            // Clear the buffer to avoid reading the same data again
+            _serialPort.DiscardInBuffer();
+            AddFrame(buffer);
+        }
+        else
+        {
+            int bytesToRead = _serialPort.BytesToRead;
+            byte[] buffer = new byte[bytesToRead];
+            //_serialPort.Read(buffer, 0, bytesToRead);
+        //AddFrame(buffer);
         }
     }
 
@@ -99,11 +145,14 @@ namespace SerialReceiver;
             // Cancel the listening task and close the serial port
             _cancellationTokenSource.Cancel();
             _serialPort.Close();
+            _serialPort.DataReceived -= SerialPort_DataReceived;
         }
         else
         {
             _serialPort.BaudRate = BaudRate;
             _serialPort.PortName = SelectedComPort;
+            if (!UseStreamReader)
+                _serialPort.ReadBufferSize = 1024;
             try
             {
                 _serialPort.Open();
@@ -126,7 +175,19 @@ namespace SerialReceiver;
         IsSerialPortClosed = !_serialPort.IsOpen;
         if (_serialPort.IsOpen)
         {
-            _ = ListenAsync(_cancellationTokenSource.Token);
+            if (UseStreamReader)
+                _ = ListenAsync(_cancellationTokenSource.Token);
+            else
+            {
+                _serialPort.DataReceived += SerialPort_DataReceived;
+            }
+        }
+        else
+        {
+            if (UseStreamReader)
+                _cancellationTokenSource.Cancel();
+            else
+                _serialPort.DataReceived -= SerialPort_DataReceived;
         }
         UpdateStatusText();
     }
@@ -180,7 +241,7 @@ namespace SerialReceiver;
                 ShowComPortList = true;
             }
         }
-    public record Frame(TimeMs Timestamp, string Data, bool IsValid);
+    public record Frame(TimeMs Timestamp, int Size, string Data, bool IsValid);
 }
 
 public class TimeMs
