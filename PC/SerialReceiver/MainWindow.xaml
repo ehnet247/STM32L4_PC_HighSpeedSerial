@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Loaded="Window_Loaded"
         Closing="Window_Closing"
-        Title="Serial receiver" Height="450" Width="800">
+        Title="Serial receiver" Height="760" Width="1600">
     <Window.Resources>
         <conv:BoolToOpenCloseConverterConverters x:Key="BoolToOpenCloseConverter"/>
     </Window.Resources>
@@ -74,7 +74,20 @@
         </StackPanel>
         <!-- ROW 1: Frame display -->
         <Grid Grid.Row="1">
-            <DataGrid ItemsSource="{Binding Frames}"
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            
+            <TextBox Grid.Column="0"
+                         Text="{Binding TextDataReceived}"
+                         FontFamily="Lucida Console"
+                         FontSize="10"
+                         Background="Black"
+                         Foreground="Lime"/>
+            
+            <DataGrid Grid.Column="1"
+                      ItemsSource="{Binding Frames}"
                       AutoGenerateColumns="False"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"

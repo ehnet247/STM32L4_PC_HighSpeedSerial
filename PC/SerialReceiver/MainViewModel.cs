@@ -28,7 +28,7 @@ namespace SerialReceiver;
         [ObservableProperty]
         private bool _showComPortList = false;
         [ObservableProperty]
-        private bool _useStreamReader = false;
+        private bool _useStreamReader = true;
         private readonly SerialPort _serialPort = new SerialPort();
     partial void OnSelectedComPortChanged(string value)
     {
@@ -42,6 +42,9 @@ namespace SerialReceiver;
 
     [ObservableProperty]
     private string _statusText = "Ready";
+
+    [ObservableProperty]
+    private string _textDataReceived = string.Empty;
 
     private void UpdateStatusText()
     {
@@ -80,7 +83,7 @@ namespace SerialReceiver;
 
     private bool IsFrameValid(char[] buffer)
     {
-        if (buffer.Length == 1024)
+        if (buffer.Contains('\0'))
             return true;
         return false;
     }
@@ -94,19 +97,49 @@ namespace SerialReceiver;
 
     private void AddFrame(char[] buffer)
     {
-        var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, new string(buffer), IsFrameValid(buffer));
-        Frames.Add(frame);
+        var validFrame = IsFrameValid(buffer);
+        // If the frame contains the end of the frame character '\0', we will only take the data up to that point and discard the rest
+        if (validFrame)
+        {
+            int length = Array.IndexOf(buffer, '\0') + 1;
+            char[] usefullData = new char[length];
+            Array.Copy(buffer, usefullData, length);
+            var usefullString = new string(usefullData);
+            TextDataReceived += usefullString + Environment.NewLine;
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), usefullData.Length, usefullString, true);
+            Frames.Add(frame);
+        }
+        else
+        {
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, new string(buffer), false);
+            Frames.Add(frame);
+        }
+        
         if (_serialPort.IsOpen && UseStreamReader)
             _ = ListenAsync(_cancellationTokenSource.Token);
     }
 
     private void AddFrame(byte[] buffer)
     {
-        var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, Encoding.ASCII.GetString(buffer), IsFrameValid(buffer));
-        Application.Current.Dispatcher.Invoke(() =>
+        var validFrame = IsFrameValid(buffer);
+        if (validFrame)
         {
-            Frames.Add(frame);
-        });
+            var usefullString = Encoding.ASCII.GetString(buffer);
+            TextDataReceived += usefullString + Environment.NewLine;
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, usefullString, true);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Frames.Add(frame);
+            });
+        }
+        else
+        {
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, Encoding.ASCII.GetString(buffer), false);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Frames.Add(frame);
+            });
+        }
         if (_serialPort.IsOpen && UseStreamReader)
             _ = ListenAsync(_cancellationTokenSource.Token);
     }
