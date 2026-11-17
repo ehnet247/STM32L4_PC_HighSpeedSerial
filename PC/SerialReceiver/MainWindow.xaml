@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Loaded="Window_Loaded"
         Closing="Window_Closing"
-        Title="Serial receiver" Height="760" Width="1600">
+        Title="Serial receiver" Height="760" Width="1200">
     <Window.Resources>
         <conv:BoolToOpenCloseConverterConverters x:Key="BoolToOpenCloseConverter"/>
     </Window.Resources>
