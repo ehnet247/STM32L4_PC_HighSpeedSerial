@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Loaded="Window_Loaded"
         Closing="Window_Closing"
-        Title="Serial receiver" Height="760" Width="1200">
+        Title="Serial receiver" Height="640" Width="1200">
     <Window.Resources>
         <conv:BoolToOpenCloseConverterConverters x:Key="BoolToOpenCloseConverter"/>
     </Window.Resources>
@@ -57,7 +57,7 @@
             <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
             <ToggleButton Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
                           Command="{Binding OpenCloseCommand}"
-                          IsChecked="{Binding IsSerialPortClosed, Mode=OneWay}"
+                          IsChecked="{Binding IsSerialPortClosed}"
                           DockPanel.Dock="Bottom"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Bottom"
@@ -78,14 +78,14 @@
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            
+            <!-- Column 0: Console -->
             <TextBox Grid.Column="0"
                          Text="{Binding TextDataReceived}"
                          FontFamily="Lucida Console"
                          FontSize="10"
                          Background="Black"
                          Foreground="Lime"/>
-            
+            <!-- Column 1: DataGrid -->
             <DataGrid Grid.Column="1"
                       ItemsSource="{Binding Frames}"
                       AutoGenerateColumns="False"
@@ -99,7 +99,11 @@
                         <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
                         <DataGridTextColumn Header="Size" Binding="{Binding Size}"/>
                         <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="*"/>
-                        <DataGridCheckBoxColumn Header="IsValid" Binding="{Binding IsValid}"/>
+                    <DataGridCheckBoxColumn Binding="{Binding IsValid}">
+                        <DataGridCheckBoxColumn.Header>
+                            <TextBlock Text="Valid" ToolTip="Indicates wether the received frame is of the correct size" />
+                        </DataGridCheckBoxColumn.Header>
+                    </DataGridCheckBoxColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Grid>

@@ -15,7 +15,8 @@ namespace SerialReceiver;
     public partial class MainViewModel : ObservableRecipient, IWindowModel
     {
         public SettingsReader? AppSettings { get; private set; }
-        private CancellationTokenSource? _cancellationTokenSource;
+    public bool CanExecuteOpenClose { get; private set; } = true;
+    private CancellationTokenSource? _cancellationTokenSource;
     [ObservableProperty]
     private ObservableCollection<Frame> _frames = new ObservableCollection<Frame>();
     //private readonly SerialPort _serialPort = new SerialPort();
@@ -54,7 +55,7 @@ namespace SerialReceiver;
         }
         else if (_cancellationTokenSource?.Token.IsCancellationRequested == true)
         {
-            StatusText = $"Port {SelectedComPort} opened but not listening.";
+            StatusText = $"Port {SelectedComPort} open but not listening.";
         }
         else
         {
@@ -105,32 +106,39 @@ namespace SerialReceiver;
         int bytesRead = 0;
         int bytesToRead = _serialPort.BytesToRead;
         bool endOfFrameFound = false;
-        while (bytesToRead < 1000 && !IsSerialPortClosed && !ct.IsCancellationRequested)
+        while (bytesToRead < 1023 && !IsSerialPortClosed && !ct.IsCancellationRequested)
         {
-            await Task.Delay(10, ct);
+            try
+            {
+                await Task.Delay(10, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                // Nothing to do
+            }
+            if (!ct.IsCancellationRequested)
             bytesToRead = _serialPort.BytesToRead;
         }
-            if (!IsSerialPortClosed && !ct.IsCancellationRequested)
+        if (!IsSerialPortClosed && !ct.IsCancellationRequested && sr != null)
+        {
+            try
             {
-                try
-                {
-                    //bytesRead = await sr.ReadAsync(buffer, cancellationTokenSource.Token);
-                    bytesRead = sr.ReadBlock(buffer, 0, buffer.Length);
-                    if (bytesRead > 0)
-                        endOfFrameFound = AddFrame(buffer);
+                bytesRead = await sr.ReadAsync(buffer, 0, bytesToRead);
+                if (bytesRead > 0)
+                    endOfFrameFound = await AddFrameAsync(buffer);
 
-                }
-                catch (IOException ex)
-                {
-                    Debug.WriteLine("Error (Listen) - " + ex.Message);
-                    //return Task.FromResult(-1).Result;
-                    return -1;
-                }
-                if (bytesRead == -1)
-                {
-                    endOfFrameFound = true;
-                }
             }
+            catch (IOException ex)
+            {
+                Debug.WriteLine("Error (Listen) - " + ex.Message);
+                //return Task.FromResult(-1).Result;
+                return -1;
+            }
+            if (bytesRead == -1)
+            {
+                endOfFrameFound = true;
+            }
+        }
         //return Task.FromResult(bytesRead).Result;
         return bytesRead;
     }
@@ -153,7 +161,7 @@ namespace SerialReceiver;
     private bool AddFrame(Memory<char> buffer)
     {
         bool validFrame = IsFrameValid(buffer);
-        // If the frame contains the end of the frame character '\0', we will only take the data up to that point and discard the rest
+        // If the frame contains the end of the frame character '\0', we only take the data up to that point and discard the rest
         if (validFrame)
         {
             int length = MemoryExtensions.IndexOf(buffer.Span.ToArray(), '\0') + 1;
@@ -170,7 +178,39 @@ namespace SerialReceiver;
         return validFrame;
     }
 
-    private void AddFrame(byte[] buffer)
+    private async Task<bool> AddFrameAsync(char[] buffer)
+    {
+        var usefullString = new string(buffer);
+        var validFrame = IsFrameValid(buffer);
+        if (validFrame)
+        {
+            TextDataReceived += usefullString + Environment.NewLine;
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, usefullString, true);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Frames.Add(frame);
+            });
+        }
+        else
+        {
+            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, usefullString, false);
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Frames.Add(frame);
+            });
+        }
+        if (UseStreamReader && _serialPort.IsOpen)
+        {
+            // Start a new listening task with a timeout of 1000 milliseconds
+            //_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
+            if (_cancellationTokenSource == null)
+                _cancellationTokenSource = new CancellationTokenSource();
+            await ListenAsync(_cancellationTokenSource.Token);
+        }
+        return validFrame;
+    }
+
+    private async Task AddFrameAsync(byte[] buffer)
     {
         var validFrame = IsFrameValid(buffer);
         if (validFrame)
@@ -191,31 +231,45 @@ namespace SerialReceiver;
                 Frames.Add(frame);
             });
         }
-        if (_serialPort.IsOpen && UseStreamReader)
+        if (UseStreamReader && _serialPort.IsOpen)
         {
-            _cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
-            //_ = ListenAsync(_cancellationTokenSource.Token);
-            if (_cancellationTokenSource != null)
-                Listen(_cancellationTokenSource.Token);
+            // Start a new listening task with a timeout of 1000 milliseconds
+            //_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
+            if (_cancellationTokenSource == null)
+                _cancellationTokenSource = new CancellationTokenSource();
+            await ListenAsync(_cancellationTokenSource.Token);
         }
     }
 
     private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
     {
+        // Unsubscribe from the DataReceived event to prevent re-entry while processing
+        _serialPort.DataReceived -= SerialPort_DataReceived;
+        _ = SerialPort_DataReceivedAsync();
+    }
+
+    private async Task SerialPort_DataReceivedAsync()
+    {
         if (_serialPort.BytesToRead >= 1024)
         {
             byte[] buffer = new byte[1024];
-            _serialPort.Read(buffer, 0, 1024);
-            // Clear the buffer to avoid reading the same data again
-            _serialPort.DiscardInBuffer();
-            AddFrame(buffer);
+            var bytesRead = _serialPort.Read(buffer, 0, 1024);
+            if (bytesRead == 1024)
+            {
+                // Clear the buffer to avoid reading the same data again
+                _serialPort.DiscardInBuffer();
+                await AddFrameAsync(buffer);
+            }
+            // Re-subscribe to the DataReceived event after processing
+            _serialPort.DataReceived += SerialPort_DataReceived;
+
         }
         else
         {
             int bytesToRead = _serialPort.BytesToRead;
             byte[] buffer = new byte[bytesToRead];
             //_serialPort.Read(buffer, 0, bytesToRead);
-        //AddFrame(buffer);
+            //AddFrame(buffer);
         }
     }
 
@@ -226,15 +280,16 @@ namespace SerialReceiver;
         UpdateStatusText();
     }
 
-    [RelayCommand]
-    private void OpenClose()
+    [RelayCommand(CanExecute = nameof(CanExecuteOpenClose))]
+    private async Task OpenCloseAsync()
     {
         if (_serialPort.IsOpen)
         {
             // Cancel the listening task and close the serial port
             _cancellationTokenSource?.Cancel();
             _serialPort.Close();
-            _serialPort.DataReceived -= SerialPort_DataReceived;
+            if (!UseStreamReader)
+                _serialPort.DataReceived -= SerialPort_DataReceived;
         }
         else
         {
@@ -251,7 +306,7 @@ namespace SerialReceiver;
             {
                 Debug.WriteLine($"Failed to open {_serialPort.PortName}: {ex.Message}");
             }
-            // If the serial port is open, copy the current settings to the AppSettings
+            // If the serial port is successfully open, copy the current settings to the AppSettings
             if (_serialPort.IsOpen)
             {
                 if (AppSettings?.Default != null)
@@ -268,10 +323,9 @@ namespace SerialReceiver;
         {
             if (UseStreamReader)
             {
-                // no timeout for the first listening
-                _cancellationTokenSource = new CancellationTokenSource();
-                //_ = ListenAsync(_cancellationTokenSource.Token);
-                Listen(_cancellationTokenSource.Token);
+                if (_cancellationTokenSource == null)
+                    _cancellationTokenSource = new CancellationTokenSource();
+                await ListenAsync(_cancellationTokenSource.Token);
             }
             else
             {
