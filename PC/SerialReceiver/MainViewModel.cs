@@ -15,7 +15,6 @@ namespace SerialReceiver;
     public partial class MainViewModel : ObservableRecipient, IWindowModel
     {
         public SettingsReader? AppSettings { get; private set; }
-    public bool CanExecuteOpenClose { get; private set; } = true;
     private CancellationTokenSource? _cancellationTokenSource;
     [ObservableProperty]
     private ObservableCollection<Frame> _frames = new ObservableCollection<Frame>();
@@ -201,8 +200,6 @@ namespace SerialReceiver;
         }
         if (UseStreamReader && _serialPort.IsOpen)
         {
-            // Start a new listening task with a timeout of 1000 milliseconds
-            //_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
             if (_cancellationTokenSource == null)
                 _cancellationTokenSource = new CancellationTokenSource();
             await ListenAsync(_cancellationTokenSource.Token);
@@ -280,7 +277,7 @@ namespace SerialReceiver;
         UpdateStatusText();
     }
 
-    [RelayCommand(CanExecute = nameof(CanExecuteOpenClose))]
+    [RelayCommand(AllowConcurrentExecutions= true)]
     private async Task OpenCloseAsync()
     {
         if (_serialPort.IsOpen)
@@ -293,6 +290,7 @@ namespace SerialReceiver;
         }
         else
         {
+            _cancellationTokenSource = new CancellationTokenSource();
             _serialPort.BaudRate = BaudRate;
             _serialPort.PortName = SelectedComPort;
             if (!UseStreamReader)
@@ -390,6 +388,13 @@ namespace SerialReceiver;
                 ShowComPortList = true;
             }
         }
+
+    [RelayCommand]
+    private void ClearFrames()
+    {
+        TextDataReceived = string.Empty;
+        Frames.Clear();
+    }
     public record Frame(TimeMs Timestamp, int Size, string Data, bool IsValid);
 }
 

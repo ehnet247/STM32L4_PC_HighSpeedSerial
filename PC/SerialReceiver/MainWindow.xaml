@@ -55,9 +55,8 @@
                           Height="25"/>
             </DockPanel>
             <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-            <ToggleButton Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
+            <Button Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
                           Command="{Binding OpenCloseCommand}"
-                          IsChecked="{Binding IsSerialPortClosed}"
                           DockPanel.Dock="Bottom"
                           HorizontalAlignment="Left"
                           VerticalAlignment="Bottom"
@@ -71,9 +70,17 @@
                     VerticalAlignment="Bottom"
                     Width="50" Height="25"/>
             </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <Button Content="Clear"
+                    Command="{Binding ClearFramesCommand}"
+                    DockPanel.Dock="Bottom"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Width="50" Height="25"/>
+            </DockPanel>
         </StackPanel>
         <!-- ROW 1: Frame display -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
