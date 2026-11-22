@@ -116,6 +116,8 @@ int main(void)
 	  {
 		  if (buttonState == PB_PRESSED)
 	      {
+			  if (huart2.gState != HAL_UART_STATE_READY)
+				  huart2.gState = HAL_UART_STATE_READY;
 			  // Start transmission
 			  if(HAL_UART_Transmit_DMA(&huart2, (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK)
 			  {
