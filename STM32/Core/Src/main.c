@@ -43,9 +43,6 @@
 /* UART handler declaration */
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
-/* Buffer used for transmission */
-uint8_t aTxBuffer[] = " ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA****  ****UART_TwoBoards communication based on DMA**** ";
-uint8_t bTransmissionStarted = 0;
 
 /* USER CODE BEGIN PV */
 
@@ -73,7 +70,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	uint32_t buttonState;
+	uint32_t previousButtonState = PB_RELEASED;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -96,25 +94,40 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USART2_UART_Init();
-  /*##-4- Start the transmission process #####################################*/
-
-
+  /* USER CODE BEGIN 2 */
+  //uint8_t aTxBuffer[128] = "*** High data rate UART <-> PC communication based on DMA ****\r\n*** High data rate UART <-> PC communication based on DMA ****\r\n";
+  uint8_t aTxBuffer[1024] = "01* High data rate UART <-> PC communication based on DMA ****\r\n02* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "03* High data rate UART <-> PC communication based on DMA ****\r\n04* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "05* High data rate UART <-> PC communication based on DMA ****\r\n06* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "07* High data rate UART <-> PC communication based on DMA ****\r\n08* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "09* High data rate UART <-> PC communication based on DMA ****\r\n10* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "11* High data rate UART <-> PC communication based on DMA ****\r\n12* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "13* High data rate UART <-> PC communication based on DMA ****\r\n14* High data rate UART <-> PC communication based on DMA ****\r\n"
+		  "15* High data rate UART <-> PC communication based on DMA ****\r\n16* High data rate UART <-> PC communication based on DMA ***\r\n\0";
+  /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (BSP_PB_GetState(BUTTON_USER) != GPIO_PIN_SET)
+	  buttonState = BSP_PB_GetState(BUTTON_USER);
+	  // If button state has changed
+	  if (buttonState != previousButtonState)
 	  {
-		  if (bTransmissionStarted == 0)
-		  {
-			  // Init the transmission process
+		  if (buttonState == PB_PRESSED)
+	      {
+			  // Start transmission
 			  if(HAL_UART_Transmit_DMA(&huart2, (uint8_t*)aTxBuffer, TXBUFFERSIZE)!= HAL_OK)
 			  {
 				  Error_Handler();
 			  }
-			  bTransmissionStarted = 1;
+	      }
+		  else
+		  {
+			  // Stop transmission on button released
+			  //HAL_UART_DMAStop(&huart2);
 		  }
+		  previousButtonState = buttonState;
 	  }
     /* USER CODE END WHILE */
 
@@ -188,7 +201,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 115200; //9600
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -196,8 +209,7 @@ static void MX_USART2_UART_Init(void)
   huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart2.Init.OverSampling = UART_OVERSAMPLING_16;
   huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_DMADISABLEONERROR_INIT;
-  huart2.AdvancedInit.DMADisableonRxError = UART_ADVFEATURE_DMA_DISABLEONRXERROR;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
   if (HAL_UART_Init(&huart2) != HAL_OK)
   {
     Error_Handler();
