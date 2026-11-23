@@ -204,7 +204,15 @@ void SysTick_Handler(void)
 void DMA1_Channel7_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel7_IRQn 0 */
-
+	uint32_t source_it = hdma_usart2_tx.Instance->CCR;
+  /* DMA Normal mode and DMA transfer complete? */
+  if (HAL_IS_BIT_CLR(hdma_usart2_tx.Instance->CCR, DMA_CCR_CIRC) && ((source_it & DMA_IT_TC) != 0U))
+  {
+	  /* Set uart state to ready for the next transfer */
+	  UART_HandleTypeDef *huart = (UART_HandleTypeDef *)(hdma_usart2_tx.Parent);
+	  if (huart->gState != HAL_UART_STATE_READY)
+	  		huart->gState = HAL_UART_STATE_READY;
+  }
   /* USER CODE END DMA1_Channel7_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart2_tx);
   /* USER CODE BEGIN DMA1_Channel7_IRQn 1 */
