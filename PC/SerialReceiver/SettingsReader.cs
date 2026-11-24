@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using static SerialReceiver.MainViewModel;
 
 namespace SerialReceiver
 {
@@ -50,5 +51,7 @@ namespace SerialReceiver
     {
         public string? LastComPort { get; set; } = null;
         public int? LastBaudRate { get; set; } = null;
+        public int? LastEoFDetectionMode { get; set; } = null;
+        public string? LastEoFDetectionParam { get; set; } = null;
     }
 }

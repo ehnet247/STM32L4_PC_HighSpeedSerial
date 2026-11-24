@@ -14,6 +14,13 @@ using System.Windows;
 namespace SerialReceiver;
     public partial class MainViewModel : ObservableRecipient, IWindowModel
     {
+    public enum EoFDetection
+    {
+        Size,
+        Time,
+        Sequence
+    }
+    public Array EoFDetectionItemsSource => Enum.GetValues(typeof(EoFDetection));
         public SettingsReader? AppSettings { get; private set; }
     private CancellationTokenSource? _cancellationTokenSource;
     [ObservableProperty]
@@ -39,6 +46,10 @@ namespace SerialReceiver;
     }
     [ObservableProperty]
     private int _baudRate = 9600;
+    [ObservableProperty]
+    private int? _selectedEoFDetectionMode = (int?)EoFDetection.Size;
+    [ObservableProperty]
+    private string? _eoFDetectionParam = string.Empty;
 
     [ObservableProperty]
     private string _statusText = "Ready";
@@ -247,26 +258,32 @@ namespace SerialReceiver;
 
     private async Task SerialPort_DataReceivedAsync()
     {
-        if (_serialPort.BytesToRead >= 1024)
+        if (SelectedEoFDetectionMode != null &&
+            ((EoFDetection)SelectedEoFDetectionMode == EoFDetection.Size))
         {
-            byte[] buffer = new byte[1024];
-            var bytesRead = _serialPort.Read(buffer, 0, 1024);
-            if (bytesRead == 1024)
+            int eoFSize = -1;
+            if (int.TryParse(EoFDetectionParam, out eoFSize) &&
+                _serialPort.BytesToRead >= eoFSize)
             {
-                // Clear the buffer to avoid reading the same data again
-                _serialPort.DiscardInBuffer();
-                await AddFrameAsync(buffer);
-            }
-            // Re-subscribe to the DataReceived event after processing
-            _serialPort.DataReceived += SerialPort_DataReceived;
+                byte[] buffer = new byte[1024];
+                var bytesRead = _serialPort.Read(buffer, 0, 1024);
+                if (bytesRead == 1024)
+                {
+                    // Clear the buffer to avoid reading the same data again
+                    _serialPort.DiscardInBuffer();
+                    await AddFrameAsync(buffer);
+                }
+                // Re-subscribe to the DataReceived event after processing
+                _serialPort.DataReceived += SerialPort_DataReceived;
 
-        }
-        else
-        {
-            int bytesToRead = _serialPort.BytesToRead;
-            byte[] buffer = new byte[bytesToRead];
-            //_serialPort.Read(buffer, 0, bytesToRead);
-            //AddFrame(buffer);
+            }
+            else
+            {
+                int bytesToRead = _serialPort.BytesToRead;
+                byte[] buffer = new byte[bytesToRead];
+                //_serialPort.Read(buffer, 0, bytesToRead);
+                //AddFrame(buffer);
+            }
         }
     }
 
@@ -311,6 +328,8 @@ namespace SerialReceiver;
                 {
                     AppSettings.Default.LastComPort = _serialPort.PortName;
                     AppSettings.Default.LastBaudRate = BaudRate;
+                    AppSettings.Default.LastEoFDetectionMode = SelectedEoFDetectionMode;
+                    AppSettings.Default.LastEoFDetectionParam = EoFDetectionParam;
                 }
             }
         }
@@ -355,6 +374,14 @@ namespace SerialReceiver;
         if (AppSettings?.Default?.LastBaudRate != null)
         {
             BaudRate = (int)AppSettings.Default.LastBaudRate;
+        }
+        if (AppSettings?.Default?.LastEoFDetectionMode != null && AppSettings.Default.LastEoFDetectionMode < Enum.GetValues(typeof(EoFDetection)).Length)
+        {
+            SelectedEoFDetectionMode = AppSettings.Default.LastEoFDetectionMode;
+        }
+        if (AppSettings?.Default?.LastEoFDetectionParam != null)
+        {
+            EoFDetectionParam = AppSettings.Default.LastEoFDetectionParam;
         }
     }
 

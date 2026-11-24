@@ -54,6 +54,15 @@
                           VerticalAlignment="Bottom"
                           Height="25"/>
             </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" >
+                <ComboBox Width="200" ItemsSource="{Binding EoFDetectionItemsSource, Mode=OneTime}" SelectedIndex="{Binding SelectedEoFDetectionMode}"
+                          Height="25" HorizontalAlignment="Left" DockPanel.Dock="Bottom"/>
+                <Label Content="End of frame type:" DockPanel.Dock="Bottom" Height="25" HorizontalContentAlignment="Left" Margin="0,6,0,0"/>
+            </DockPanel>
+            <DockPanel Height="55" Margin="10,0,0,0" >
+                <TextBox Width="200" Text="{Binding EoFDetectionParam}" Height="25" DockPanel.Dock="Bottom"/>
+                <Label Content="End of frame param:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0"/>
+            </DockPanel>
             <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
             <Button Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
                           Command="{Binding OpenCloseCommand}"
