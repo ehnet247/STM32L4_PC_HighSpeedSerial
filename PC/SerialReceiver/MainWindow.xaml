@@ -10,7 +10,7 @@
         Closing="Window_Closing"
         Title="Serial receiver" Height="640" Width="1200">
     <Window.Resources>
-        <conv:BoolToOpenCloseConverterConverters x:Key="BoolToOpenCloseConverter"/>
+        <conv:BoolToOpenCloseConverter x:Key="BoolToOpenClose"/>
     </Window.Resources>
     <Window.DataContext>
         <local:MainViewModel/>
@@ -46,14 +46,6 @@
                 <TextBox Width="200" Text="{Binding BaudRate}" Height="25" DockPanel.Dock="Bottom"/>
                 <Label Content="Baudrate:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0"/>
             </DockPanel>
-            <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-            <CheckBox Content="Use StreamReader"
-                          IsChecked="{Binding UseStreamReader}"
-                          DockPanel.Dock="Bottom"
-                          HorizontalAlignment="Left"
-                          VerticalAlignment="Bottom"
-                          Height="25"/>
-            </DockPanel>
             <DockPanel Height="55" Margin="10,0,0,0" >
                 <ComboBox Width="200" ItemsSource="{Binding EoFDetectionItemsSource, Mode=OneTime}" SelectedIndex="{Binding SelectedEoFDetectionMode}"
                           Height="25" HorizontalAlignment="Left" DockPanel.Dock="Bottom"/>
@@ -64,7 +56,7 @@
                 <Label Content="End of frame param:" DockPanel.Dock="Bottom" Height="25" Margin="0,6,0,0"/>
             </DockPanel>
             <DockPanel Height="55" Margin="10,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-            <Button Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenCloseConverter}}"
+            <Button Content="{Binding IsSerialPortClosed, Converter={StaticResource BoolToOpenClose}}"
                           Command="{Binding OpenCloseCommand}"
                           DockPanel.Dock="Bottom"
                           HorizontalAlignment="Left"
@@ -105,16 +97,16 @@
             <DataGrid Grid.Column="1"
                       ItemsSource="{Binding Frames}"
                       AutoGenerateColumns="False"
+                      RowHeight="40"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
                       IsReadOnly="True"
                       AlternationCount="2"
-                      AlternatingRowBackground="SkyBlue"
-                      LoadingRow="DataGrid_LoadingRow">
+                      AlternatingRowBackground="SkyBlue">
                 <DataGrid.Columns>
-                        <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
-                        <DataGridTextColumn Header="Size" Binding="{Binding Size}"/>
-                        <DataGridTextColumn Header="Data" Binding="{Binding Data}" Width="*"/>
+                    <DataGridTextColumn Header="Timestamp" Binding="{Binding Timestamp}" Width="80"/>
+                    <DataGridTextColumn Header="Size" Binding="{Binding Size}"/>
+                    <DataGridTextColumn Header="Data" Binding="{Binding Data}"  Visibility="{Binding DataColumnVisibility}" Width="*"/>
                     <DataGridCheckBoxColumn Binding="{Binding IsValid}">
                         <DataGridCheckBoxColumn.Header>
                             <TextBlock Text="Valid" ToolTip="Indicates wether the received frame is of the correct size" />

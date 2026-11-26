@@ -34,9 +34,9 @@ namespace SerialReceiver;
         private bool _isSerialPortClosed = true;
         [ObservableProperty]
         private bool _showComPortList = false;
-        [ObservableProperty]
-        private bool _useStreamReader = true;
         private readonly SerialPort _serialPort = new SerialPort();
+    public string AwaitedSpan { get; } = "01* High data rate UART <-> PC communication based on DMA ****\r\n02* High data rate UART <-> PC communication based on DMA ****\r\n03* High data rate UART <-> PC communication based on DMA ****\r\n04* High data rate UART <-> PC communication based on DMA ****\r\n05* High data rate UART <-> PC communication based on DMA ****\r\n06* High data rate UART <-> PC communication based on DMA ****\r\n07* High data rate UART <-> PC communication based on DMA ****\r\n08* High data rate UART <-> PC communication based on DMA ****\r\n09* High data rate UART <-> PC communication based on DMA ****\r\n10* High data rate UART <-> PC communication based on DMA ****\r\n11* High data rate UART <-> PC communication based on DMA ****\r\n12* High data rate UART <-> PC communication based on DMA ****\r\n13* High data rate UART <-> PC communication based on DMA ****\r\n14* High data rate UART <-> PC communication based on DMA ****\r\n15* High data rate UART <-> PC communication based on DMA ****\r\n16* High data rate UART <-> PC communication based on DMA ***\r\n\0";
+
     partial void OnSelectedComPortChanged(string value)
     {
         if (!_serialPort.IsOpen)
@@ -157,14 +157,13 @@ namespace SerialReceiver;
     {
         ReadOnlySpan<char> span = buffer.Span;
         if (span.Contains('\0'))
-            return true;
-        return false;
-    }
-
-    private bool IsFrameValid(byte[] buffer)
-    {
-        if (buffer.Length == 1024)
-            return true;
+        {
+            var bufferString = new string(span);
+            if (span.SequenceEqual(AwaitedSpan))
+                return true;
+            else
+                return false;
+        }
         return false;
     }
 
@@ -182,9 +181,6 @@ namespace SerialReceiver;
             var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), usefullData.Length, usefullString, true);
             Frames.Add(frame);
         }
-
-        //if (_serialPort.IsOpen && UseStreamReader)
-        //    _ = ListenAsync(_cancellationTokenSource.Token);
         return validFrame;
     }
 
@@ -209,82 +205,13 @@ namespace SerialReceiver;
                 Frames.Add(frame);
             });
         }
-        if (UseStreamReader && _serialPort.IsOpen)
+        if (_serialPort.IsOpen)
         {
             if (_cancellationTokenSource == null)
                 _cancellationTokenSource = new CancellationTokenSource();
             await ListenAsync(_cancellationTokenSource.Token);
         }
         return validFrame;
-    }
-
-    private async Task AddFrameAsync(byte[] buffer)
-    {
-        var validFrame = IsFrameValid(buffer);
-        if (validFrame)
-        {
-            var usefullString = Encoding.ASCII.GetString(buffer);
-            TextDataReceived += usefullString + Environment.NewLine;
-            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, usefullString, true);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Frames.Add(frame);
-            });
-        }
-        else
-        {
-            var frame = new Frame(new TimeMs(TimeOnly.FromDateTime(DateTime.Now)), buffer.Length, Encoding.ASCII.GetString(buffer), false);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Frames.Add(frame);
-            });
-        }
-        if (UseStreamReader && _serialPort.IsOpen)
-        {
-            // Start a new listening task with a timeout of 1000 milliseconds
-            //_cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(1000));
-            if (_cancellationTokenSource == null)
-                _cancellationTokenSource = new CancellationTokenSource();
-            await ListenAsync(_cancellationTokenSource.Token);
-        }
-    }
-
-    private void SerialPort_DataReceived(object sender, SerialDataReceivedEventArgs e)
-    {
-        // Unsubscribe from the DataReceived event to prevent re-entry while processing
-        _serialPort.DataReceived -= SerialPort_DataReceived;
-        _ = SerialPort_DataReceivedAsync();
-    }
-
-    private async Task SerialPort_DataReceivedAsync()
-    {
-        if (SelectedEoFDetectionMode != null &&
-            ((EoFDetection)SelectedEoFDetectionMode == EoFDetection.Size))
-        {
-            int eoFSize = -1;
-            if (int.TryParse(EoFDetectionParam, out eoFSize) &&
-                _serialPort.BytesToRead >= eoFSize)
-            {
-                byte[] buffer = new byte[1024];
-                var bytesRead = _serialPort.Read(buffer, 0, 1024);
-                if (bytesRead == 1024)
-                {
-                    // Clear the buffer to avoid reading the same data again
-                    _serialPort.DiscardInBuffer();
-                    await AddFrameAsync(buffer);
-                }
-                // Re-subscribe to the DataReceived event after processing
-                _serialPort.DataReceived += SerialPort_DataReceived;
-
-            }
-            else
-            {
-                int bytesToRead = _serialPort.BytesToRead;
-                byte[] buffer = new byte[bytesToRead];
-                //_serialPort.Read(buffer, 0, bytesToRead);
-                //AddFrame(buffer);
-            }
-        }
     }
 
     [RelayCommand]
@@ -302,16 +229,13 @@ namespace SerialReceiver;
             // Cancel the listening task and close the serial port
             _cancellationTokenSource?.Cancel();
             _serialPort.Close();
-            if (!UseStreamReader)
-                _serialPort.DataReceived -= SerialPort_DataReceived;
         }
         else
         {
             _cancellationTokenSource = new CancellationTokenSource();
             _serialPort.BaudRate = BaudRate;
             _serialPort.PortName = SelectedComPort;
-            if (!UseStreamReader)
-                _serialPort.ReadBufferSize = 1024;
+            _serialPort.ReadBufferSize = 1024;
             try
             {
                 _serialPort.Open();
@@ -338,23 +262,13 @@ namespace SerialReceiver;
         UpdateStatusText();
         if (_serialPort.IsOpen)
         {
-            if (UseStreamReader)
-            {
-                if (_cancellationTokenSource == null)
-                    _cancellationTokenSource = new CancellationTokenSource();
-                await ListenAsync(_cancellationTokenSource.Token);
-            }
-            else
-            {
-                _serialPort.DataReceived += SerialPort_DataReceived;
-            }
+            if (_cancellationTokenSource == null)
+                _cancellationTokenSource = new CancellationTokenSource();
+            await ListenAsync(_cancellationTokenSource.Token);
         }
         else
         {
-            if (UseStreamReader)
-                _cancellationTokenSource?.Cancel();
-            else
-                _serialPort.DataReceived -= SerialPort_DataReceived;
+            _cancellationTokenSource?.Cancel();
         }
     }
         public ObservableCollection<string> AvailableComPorts { get; } = new ObservableCollection<string>();

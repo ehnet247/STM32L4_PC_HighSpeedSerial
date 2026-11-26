@@ -36,14 +36,5 @@ namespace SerialReceiver
                 windowModel.OnWindowClosing();
             }
         }
-
-        private void DataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
-        {
-            if (sender is DataGrid dataGrid)
-            {
-                // Scroll to the new row when it is added
-                dataGrid.ScrollIntoView(e.Row.Item);
-            }
-        }
     }
 }

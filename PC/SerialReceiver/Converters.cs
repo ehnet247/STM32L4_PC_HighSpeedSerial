@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
+using System.Windows;
 using System.Windows.Data;
 
 namespace SerialReceiver.Converters;
 
-public class BoolToOpenCloseConverterConverters : IValueConverter
+public class BoolToOpenCloseConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
     {
